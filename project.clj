@@ -16,6 +16,7 @@
                    :dependencies [[thheller/shadow-cljs "2.6.13"]
                                   [org.clojure/clojure "1.9.0"]
                                   [org.clojure/clojurescript "1.10.238" :exclusions [com.google.javascript/closure-compiler-unshaded]]
+                                  [org.clojure/core.async "0.4.474"]
                                   [binaryage/devtools "0.9.10"]
                                   [pjstadig/humane-test-output "0.8.3"]]}}
   :cljfmt {:indents {println [[:inner 0]]
