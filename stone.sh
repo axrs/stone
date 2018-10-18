@@ -76,6 +76,46 @@ unit-test () {
 	esac
 }
 
+is-snapshot () {
+	version=$(cat VERSION)
+	[[ "$version" == *SNAPSHOT ]]
+}
+
+deploy () {
+	lein deploy clojars
+	abort_on_error
+}
+
+## snapshot:
+## Pushes a snapshot to Clojars
+snapshot () {
+	if is-snapshot;then
+		echo_message 'SNAPSHOT suffix already defined... Aborting'
+		exit 1
+	else
+		version=$(cat VERSION)
+		snapshot="$version-SNAPSHOT"
+		echo ${snapshot} > VERSION
+		echo_message "Snapshotting $snapshot"
+		deploy
+		echo "$version" > VERSION
+	fi
+}
+
+## release:
+## Pushes a release to Clojars
+release () {
+	version=$(cat VERSION)
+	if ! is-snapshot;then
+		version=$(cat VERSION)
+		echo_message "Releasing $version"
+		deploy
+	else
+		echo_message 'SNAPSHOT suffix already defined... Aborting'
+		exit 1
+	fi
+}
+
 ensure_githooks
 
 if [[ "$#" -eq 0 ]] || [[ "$1" =~ ^(help|-h|--help)$ ]];then
