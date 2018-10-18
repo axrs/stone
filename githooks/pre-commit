@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+./stone.sh format
+git ls-files --modified | xargs git add
