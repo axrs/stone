@@ -1,0 +1,5 @@
+# Stone Changelog
+
+### 0.0.1 (Unreleased)
+
+-   Initial project setup

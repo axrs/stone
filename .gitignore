@@ -1,0 +1,9 @@
+.cpcache
+.nrepl-port
+.shadow-cljs/
+/.idea
+/target
+node_modules/
+test-target/js
+pom.xml
+project.sh
