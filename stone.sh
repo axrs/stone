@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 cd $(realpath $(dirname $0))
-set -euo pipefail
 
 if [ ! -f ./project.sh ]; then
 	echo "Downloading bash helper utilities"
@@ -33,14 +32,18 @@ clean () {
 deps () {
 	echo_message "Installing dependencies"
 	npm install
+	abort_on_error
 	lein deps
+	abort_on_error
 }
 
 ## format:
 ## Formats all project source files in a consistent manner
 format () {
 	lein cljfmt fix
+	abort_on_error
     npx remark . --use remark-preset-lint-recommended --use toc --use bookmarks -o
+    abort_on_error
 }
 
 ## lint:
@@ -48,17 +51,21 @@ format () {
 lint () {
 	echo_message "Linting"
 	lein cljfmt check
+	abort_on_error
 }
 
 unit-test-once (){
 	echo_message "Unit Testing"
 	npx shadow-cljs compile test
+	abort_on_error
 	npx karma start --single-run
+	abort_on_error
 }
 
 unit-test-refresh () {
 	echo_message "Unit Testing (refreshing)"
 	npx shadow-cljs watch test-browser
+	abort_on_error
 }
 
 ## unit-test:
