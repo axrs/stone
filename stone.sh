@@ -19,6 +19,10 @@ ensure_githooks () {
 	fi
 }
 
+shadow-cljs () {
+	lein trampoline run -m shadow.cljs.devtools.cli $@
+}
+
 ## clean:
 ## Cleans the project of all compiled/generated sources
 clean () {
@@ -56,7 +60,7 @@ lint () {
 
 unit-test-once (){
 	echo_message "Unit Testing"
-	npx shadow-cljs compile test
+	shadow-cljs compile test
 	abort_on_error
 	npx karma start --single-run
 	abort_on_error
@@ -64,7 +68,7 @@ unit-test-once (){
 
 unit-test-refresh () {
 	echo_message "Unit Testing (refreshing)"
-	npx shadow-cljs watch test-browser
+	shadow-cljs watch test-browser
 	abort_on_error
 }
 

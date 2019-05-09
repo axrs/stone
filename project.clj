@@ -11,13 +11,10 @@
   :source-paths ["src"]
   :test-paths ["test"]
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target" "test-target/js"]
-  :dependencies []
+  :dependencies [[thheller/shadow-cljs "2.8.36"]
+                 [io.jesi/backpack "0.0.30-SNAPSHOT"]]
   :profiles {:dev {:plugins      [[lein-cljfmt "0.6.0"]]
-                   :dependencies [[thheller/shadow-cljs "2.6.13"]
-                                  [org.clojure/clojure "1.9.0"]
-                                  [org.clojure/clojurescript "1.10.238" :exclusions [com.google.javascript/closure-compiler-unshaded]]
-                                  [org.clojure/core.async "0.4.474"]
-                                  [binaryage/devtools "0.9.10"]
+                   :dependencies [[binaryage/devtools "0.9.10"]
                                   [pjstadig/humane-test-output "0.8.3"]]}}
   :cljfmt {:indents {println [[:inner 0]]
                      ns      [[:inner 0] [:inner 1]]}}
