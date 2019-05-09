@@ -1,78 +1,72 @@
 (ns io.axrs.stone.core-test
   (:require
-    [clojure.test :refer [deftest testing is use-fixtures async]]
+    [cljs.test :refer [deftest testing is async use-fixtures]]
     [clojure.core.async :refer [go <! >! put! chan close!]]
-    [io.axrs.stone.core :as stone]))
+    [io.jesi.backpack.random :as rnd]
+    [io.axrs.stone.core :as stone]
+    [io.jesi.backpack.test.macros :refer [async-go]]))
 
-(defonce db (atom nil))
+(defonce ^:dynamic *db* nil)
+(defonce store-name "stone")
 
-(defn with-done [done f]
-  (go (let [res (<! (stone/init "stone-db"
-                                {:upgrade #(do (prn "upgrading")
-                                               (-> % (stone/delete-store "stone"))
-                                               (is (false? (stone/contains-store? % "stone")))
-                                               (-> % (stone/create-store "stone" {:key-path "id"}))
-                                               (is (true? (stone/contains-store? % "stone"))))}))]
-        (reset! db res)
-        (f)
-        (done))))
+(use-fixtures :each
+  {:before #(async-go
+             (set! *db* (<! (stone/<init "stone-db" {:upgrade (fn [db]
+                                                                (-> db (stone/delete-store store-name))
+                                                                (is (false? (stone/contains-store? db store-name)))
+                                                                (-> db (stone/create-store store-name {:key-path "id"}))
+                                                                (is (true? (stone/contains-store? db store-name))))}))))})
 
 (deftest names-test
+
   (testing "returns a set of all current store names"
-    (async done
-           (with-done done #(is (= #{"stone"} (stone/names @db)))))))
+    (is (= #{store-name} (stone/names *db*)))))
 
 (deftest name-test
+
   (testing "returns the name of the db"
-    (async done
-           (with-done done
-             #(is (= "stone-db" (stone/name @db)))))))
+    (is (= "stone-db" (stone/name *db*)))))
 
 (deftest contains-store?-test
+
   (testing "true if the store exists"
-    (async done
-           (with-done done
-             #(do
-                (is (true? (stone/contains-store? @db "stone")))
-                (is (false? (stone/contains-store? @db "asdf"))))))))
+    (is (true? (stone/contains-store? *db* store-name)))
+    (is (false? (stone/contains-store? *db* "asdf")))))
 
 (deftest get-test-no-store
-  (testing "returns nil when store doesn't exist"
-    (async done
-           (with-done done
-             #(do
-                (is (false? (stone/contains-store? @db "asdf")))
-                (go (is (nil? (<! (stone/get @db "asdf" "item"))))))))))
+  (async-go
+
+   (testing "returns nil when store doesn't exist"
+     (is (false? (stone/contains-store? *db* "asdf")))
+     (is (nil? (<! (stone/<get *db* "asdf" "item")))))))
 
 (deftest get-test-no-key
-  (testing "returns nil when store doesn't contain the item"
-    (async done
-           (with-done done
-             #(go (is (nil? (<! (stone/get @db "stone" "asdf")))))))))
+  (async-go
+
+   (testing "returns nil when store doesn't contain the item"
+     (is (nil? (<! (stone/<get *db* store-name "asdf")))))))
 
 (deftest assoc-test
-  (testing "inserts or replaces an item in the db store"
-    (async done
-           (with-done done
-             #(go
-                (let [k "item"
-                      v1 {:hello "world"
-                          :rand  (rand)}
-                      v2 {:wave-to-the "moon"
-                          :rand        (rand)}]
-                  (<! (stone/assoc @db "stone" k v1))
-                  (is (= v1 (<! (stone/get @db "stone" k))))
-                  (<! (stone/assoc @db "stone" k v2))
-                  (is (= v2 (<! (stone/get @db "stone" k))))))))))
+  (async-go
+
+   (testing "inserts or replaces an item in the db store"
+     (let [k "item"
+           v1 {:hello "world"
+               :rand  (rand)}
+           v2 {:wave-to-the "moon"
+               :rand        (rand)}]
+       (<! (stone/<assoc *db* store-name k v1))
+       (is (= v1 (<! (stone/<get *db* store-name k))))
+       (<! (stone/<assoc *db* store-name k v2))
+       (is (= v2 (<! (stone/<get *db* store-name k))))))))
 
 (deftest dissoc-test
-  (testing "removes an item from the db store"
-    (async done
-           (with-done done
-             #(go
-                (let [k "item-to-delete"
-                      v "delete me"]
-                  (<! (stone/assoc @db "stone" k v))
-                  (is (= v (<! (stone/get @db "stone" k))))
-                  (<! (stone/dissoc @db "stone" k))
-                  (is (nil? (<! (stone/get @db "stone" k))))))))))
+  (async-go
+
+   (testing "removes an item from the db store"
+     (let [k "item-to-delete"
+           v "delete me"]
+       (<! (stone/<assoc *db* store-name k v))
+       (is (= v (<! (stone/<get *db* store-name k))))
+       (<! (stone/<dissoc *db* store-name k))
+       (is (nil? (<! (stone/<get *db* store-name k))))))))

@@ -1,8 +1,10 @@
 (ns io.axrs.stone.core
-  (:refer-clojure :exclude [name assoc get dissoc])
+  (:refer-clojure :exclude [name js->clj])
   (:require
-    [clojure.reader :as reader]
-    [clojure.core.async :refer [go <! >! put! chan close!]]))
+    [cognitect.transit :as transit]
+    [cljs.reader :refer [read-string]]
+    [clojure.core.async :refer [go <! >! put! chan close!]]
+    [goog.object :as gobject]))
 
 (defn noop [])
 
@@ -44,13 +46,25 @@
 
 (defn create-store [^js db name & [{:keys [key-path] :as opts
                                     :or   {key-path "id"}}]]
-  (.createObjectStore ^js db name #js {:keyPath key-path}))
+  (.createObjectStore db name #js {:keyPath key-path}))
 
+;TODO return errors on the channel then use backpack.async/<?
 (defn- close-and-error [chan err]
   (js/console.error err)
   (close! chan))
 
-(defn init
+(def ^:private writer (transit/writer :json))
+
+(defn- write-data [v]
+  (transit/write writer v))
+
+(def ^:private reader (transit/reader :json))
+
+(defn- read-data [v]
+  (transit/read reader v))
+
+;TODO DRY up functions below
+(defn <init
   [name & [{:keys [version open upgrade close]
             :or   {version 1
                    open    noop
@@ -67,43 +81,46 @@
     (set! (.-onerror request) close-and-error)
     chan))
 
-(defn assoc
+;TODO support non-string keys
+
+(defn <assoc
   "Associates the value (v) against the given key (k) if the store exists"
   [^js db store k v]
-  (let [chan (chan 1)]
+  (let [chan (chan)]
     (if-not (contains-store? db store)
       (close! chan)
-      (let [tx (.transaction db store "readwrite")
-            store (.objectStore ^js tx store)
-            request (.put ^js store #js {:id k :data (pr-str v)})]
+      (let [^js tx (.transaction db store "readwrite")
+            ^js store (.objectStore tx store)
+            ^js request (.put store #js {:id   k
+                                         :data (write-data v)})]
         (set! (.-onerror request) (partial close-and-error chan))
         (set! (.-onsuccess request) #(close! chan))))
     chan))
 
-(defn dissoc
+(defn <dissoc
   "Dissociates the key (k) (and subsequent value) from the store if it exists"
   [^js db store k]
-  (let [chan (chan 1)]
+  (let [chan (chan)]
     (if-not (contains-store? db store)
       (close! chan)
-      (let [tx (.transaction db store "readwrite")
-            store (.objectStore ^js tx store)
-            request (.delete ^js store k)]
+      (let [^js tx (.transaction db store "readwrite")
+            ^js store (.objectStore tx store)
+            ^js request (.delete store k)]
         (set! (.-onerror request) (partial close-and-error chan))
         (set! (.-onsuccess request) #(close! chan))))
     chan))
 
-(defn get
+(defn <get
   "Gets the value of the key (k) from the store if it exists"
   [^js db store k]
-  (let [chan (chan 1)]
+  (let [chan (chan)]
     (if-not (contains-store? db store)
       (close! chan)
-      (let [tx (.transaction db store "readonly")
-            store (.objectStore ^js tx store)
-            request (.get ^js store k)]
+      (let [^js tx (.transaction db store "readonly")
+            ^js store (.objectStore tx store)
+            ^js request (.get store k)]
         (set! (.-onerror request) (partial close-and-error chan))
-        (set! (.-onsuccess request) #(if-let [v (target-result %)]
-                                       (put! chan (reader/read-string (.-data ^js v)))
+        (set! (.-onsuccess request) #(if-let [^js v (target-result %)]
+                                       (put! chan (read-data (.-data v)))
                                        (close! chan)))))
     chan))

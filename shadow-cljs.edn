@@ -1,4 +1,5 @@
-{:builds
+{:lein true
+ :builds
        {:test         {:closure-defines {goog.DEBUG false}
                        :output-to       "target/karma/test.js"
                        :ns-regexp       "-test$"
@@ -8,8 +9,7 @@
                        :ns-regexp       "-test$"
                        :closure-defines {goog.DEBUG false}
                        :ignore-warnings true
-                       :runner-ns       io.axrs.stone.test.runner
+                       :runner-ns       io.jesi.backpack.test.runner
                        :devtools        {:http-port 8091
                                          :hud       false
-                                         :http-root "target/browser/"}}}
- :lein {:profile "+dev"}}
+                                         :http-root "target/browser/"}}}}
